@@ -1,213 +1,255 @@
-Modelado de Volatilidad y Value-at-Risk (VaR)
-Framework ARIMA–GARCH con Backtesting Estadístico (Kupiec & Christoffersen)
-Resumen
+# 📈 Modelado de Volatilidad y Value-at-Risk (VaR)
 
-Este repositorio implementa un pipeline completo de riesgo de mercado basado en volatilidad condicional, integrando:
+## Framework ARIMA–GARCH con Backtesting Estadístico Formal
 
-Transformación de precios a retornos logarítmicos
+---
 
-Diagnóstico de estacionariedad (ADF) y estructura temporal (ACF/PACF)
+## 🔎 Descripción General
 
-Filtrado de la media mediante ARIMA
+Este repositorio implementa un **pipeline profesional de riesgo de mercado** basado en modelamiento de volatilidad condicional y validación estadística formal de Value-at-Risk (VaR).
 
-Detección de heterocedasticidad condicional (ARCH-LM)
+El framework integra:
 
-Estimación de volatilidad con GARCH / EGARCH / GJR-GARCH
+- Transformación de precios ajustados a retornos logarítmicos  
+- Modelado de la media condicional mediante ARIMA  
+- Modelos de volatilidad de la familia GARCH  
+- Estimación de VaR (Paramétrico Condicional, Histórico y Monte Carlo)  
+- Backtesting formal (Kupiec y Christoffersen)  
+- Diagnóstico dinámico mediante rolling hit-rate  
 
-Comparación de distribuciones: Normal / Student-t / Skew-t
+**Caso de estudio:** Banco de Chile (CHILE.SN), datos diarios desde 2015.
 
-Forecast de volatilidad (horizonte H)
+---
 
-Cálculo de VaR:
+# 🧠 Hechos Estilizados de Series de Tiempo Financieras
 
-Paramétrico condicional
+Las series de retornos financieros presentan propiedades empíricas bien documentadas:
 
-Histórico (rolling window)
+- Precios no estacionarios  
+- Retornos aproximadamente estacionarios  
+- Clustering de volatilidad  
+- Heterocedasticidad condicional  
+- Colas pesadas (fat tails)  
+- Alta persistencia de volatilidad  
+- Asimetría ante shocks negativos (efecto leverage)  
 
-Monte Carlo (univariado y multivariado)
+Este proyecto modela explícitamente estas características y evalúa el desempeño del VaR bajo criterios estadísticos formales.
 
-Validación formal mediante Backtesting:
+---
 
-Kupiec (Unconditional Coverage)
+# ⚙️ Metodología
 
-Christoffersen (Independence)
+---
 
-Conditional Coverage
+## 1️⃣ Construcción de Retornos
 
-Caso de estudio: Banco de Chile (CHILE.SN) con datos diarios desde 2015.
+Se utilizan precios ajustados (Adjusted Close) para evitar distorsiones por dividendos y splits.
 
-1. Motivación (Hechos Estilizados)
+Los retornos logarítmicos se calculan como:
 
-Las series financieras típicamente presentan:
+\[
+r_t = \ln\left(\frac{P_t}{P_{t-1}}\right)
+\]
 
-Precios no estacionarios
+donde \( P_t \) corresponde al precio ajustado en el tiempo \( t \).
 
-Retornos estacionarios en media
+---
 
-Volatility clustering
+## 2️⃣ Modelado de la Media: ARIMA
 
-Heterocedasticidad condicional
+La dinámica de la media condicional se modela mediante un proceso ARIMA(p,d,q):
 
-Colas pesadas
+\[
+\Phi(L)(1-L)^d r_t = \Theta(L)\varepsilon_t
+\]
 
-Alta persistencia de volatilidad
+donde:
 
-Posible asimetría ante shocks negativos (leverage effect)
+- \( \Phi(L) \) y \( \Theta(L) \) son polinomios en el operador rezago  
+- \( \varepsilon_t \) son innovaciones  
 
-Este proyecto modela explícitamente estas propiedades y valida estadísticamente la calidad del VaR estimado.
+Diagnósticos aplicados:
 
-2. Metodología
-2.1 Datos y retornos
+- ACF / PACF  
+- Test de Ljung–Box sobre residuos  
 
-Se parte de precios diarios P_t y se construyen retornos logarítmicos:
+El objetivo es aislar innovaciones \( \varepsilon_t \) para modelar su varianza condicional.
 
-r_t = ln(P_t / P_{t-1})
+---
 
-Buenas prácticas: se utiliza Adj Close para evitar saltos artificiales producto de dividendos y splits.
+## 3️⃣ Modelos de Volatilidad Condicional
 
-2.2 Filtrado de media (ARIMA)
+Se evalúa la presencia de efectos ARCH mediante el test ARCH-LM antes de estimar modelos de volatilidad.
 
-Se modela la media condicional para remover dependencia lineal:
+---
 
-r_t = mu_t + epsilon_t
+### 🔹 GARCH(1,1)
 
-donde epsilon_t son innovaciones.
+\[
+\sigma_t^2 = \omega + \alpha \varepsilon_{t-1}^2 + \beta \sigma_{t-1}^2
+\]
 
-Diagnóstico aplicado:
+Captura:
 
-ACF/PACF
+- Clustering de volatilidad  
+- Persistencia  
+- Dinámica autoregresiva de la varianza  
 
-Test de Ljung–Box sobre residuos
+---
 
-2.3 Volatilidad condicional (GARCH-family)
+### 🔹 EGARCH(1,1)
 
-Se evalúa evidencia ARCH mediante ARCH-LM y se estiman modelos de volatilidad.
+\[
+\ln(\sigma_t^2) = \omega + \beta \ln(\sigma_{t-1}^2)
++ \alpha \frac{\varepsilon_{t-1}}{\sigma_{t-1}}
++ \gamma \left( \left| \frac{\varepsilon_{t-1}}{\sigma_{t-1}} \right| - E|z| \right)
+\]
 
-GARCH(1,1)
+Permite modelar asimetría sin imponer restricciones de positividad.
 
-sigma_t^2 = omega + alpha * epsilon_{t-1}^2 + beta * sigma_{t-1}^2
+---
 
-Captura persistencia y clustering de volatilidad.
+### 🔹 GJR-GARCH(1,1)
 
-EGARCH(1,1)
+\[
+\sigma_t^2 = \omega + \alpha \varepsilon_{t-1}^2
++ \gamma I_{\{\varepsilon_{t-1}<0\}}\varepsilon_{t-1}^2
++ \beta \sigma_{t-1}^2
+\]
 
-log(sigma_t^2) = omega + beta * log(sigma_{t-1}^2) + alpha * |z_{t-1}| + gamma * z_{t-1}
+Modela explícitamente el efecto leverage.
 
-Permite modelar asimetría sin restricciones de positividad.
+---
 
-GJR-GARCH(1,1)
+### 🔹 Supuestos Distribucionales
 
-sigma_t^2 = omega
-+ alpha * epsilon_{t-1}^2
-+ gamma * epsilon_{t-1}^2 * I(epsilon_{t-1} < 0)
-+ beta * sigma_{t-1}^2
+Las innovaciones estandarizadas se estiman bajo:
 
-Modela efecto leverage (mayor impacto de shocks negativos).
+- Normal  
+- Student-t  
+- Skew-t  
 
-Distribuciones consideradas para z_t:
+---
 
-Normal
+## 4️⃣ Forecast de Volatilidad
 
-Student-t
+El modelo genera pronósticos multi-step de volatilidad condicional:
 
-Skew-t
+\[
+\hat{\sigma}_{t+h}^2
+\]
 
-2.4 Forecast de volatilidad
+Estos se utilizan para estimar riesgo futuro bajo distintos horizontes.
 
-Se estima sigma_hat_{t+h} para un horizonte H, observando:
+---
 
-Convergencia a volatilidad de largo plazo
+# 📉 Value-at-Risk (VaR)
 
-Persistencia de shocks
+---
 
-Diferencias entre especificaciones
+## 🔹 VaR Paramétrico Condicional
 
-3. Value-at-Risk (VaR)
-3.1 VaR paramétrico condicional (ARIMA + GARCH)
+\[
+VaR_{t+1}^{\alpha} = \mu_{t+1} + \sigma_{t+1} q_{\alpha}
+\]
 
-VaR_{t+1}(alpha) = mu_{t+1} + q_alpha * sigma_{t+1}
+donde:
 
-donde q_alpha es el cuantil de la distribución asumida.
+- \( \mu_{t+1} \) es la media condicional  
+- \( \sigma_{t+1} \) es la volatilidad forecast  
+- \( q_{\alpha} \) es el cuantil de la distribución asumida  
 
-3.2 VaR histórico (rolling window)
+---
 
-Cuantil empírico sobre ventana móvil (ej. 250 días).
+## 🔹 VaR Histórico
 
-3.3 VaR Monte Carlo
+\[
+VaR_t^{\alpha} = \text{Cuantil empírico}_{\alpha}
+\]
 
-Simulación de retornos:
+calculado sobre una ventana móvil (ej. 250 días).
 
-r_{t+1}^{sim} = mu_{t+1} + sigma_{t+1} * z^{sim}
+---
 
-y cálculo del cuantil empírico de la distribución simulada.
+## 🔹 VaR Monte Carlo
 
-Incluye extensión multivariada mediante descomposición de Cholesky para shocks correlacionados.
+Simulación de escenarios:
 
-4. Backtesting
+\[
+r_{t+1}^{(i)} = \mu_{t+1} + \sigma_{t+1} z^{(i)}
+\]
 
-Se define violación cuando:
+donde \( z^{(i)} \) son shocks simulados.
 
-r_t < VaR_t
+Extensión multivariada mediante descomposición de Cholesky para correlaciones.
 
-Se aplican:
+---
 
-Kupiec (Unconditional Coverage)
+# 🧪 Backtesting Estadístico
 
-Christoffersen (Independence)
+Se define una violación cuando:
 
-Conditional Coverage
+\[
+r_t < VaR_t^{\alpha}
+\]
 
-Además se incluyen:
+Se aplican los siguientes tests:
 
-Visualización de violaciones
+- **Kupiec (Unconditional Coverage)**  
+- **Christoffersen (Independence Test)**  
+- **Conditional Coverage Test**
 
-Rolling hit rate (ventana de 250 días)
+Diagnósticos adicionales:
 
-5. Cómo ejecutar
-Opción A — Notebook (recomendado)
+- Visualización de violaciones  
+- Rolling hit-rate (ventana móvil de 250 días)
 
+---
+
+# 🗂️ Estructura del Repositorio
+
+```
+notebook.ipynb        → Notebook ejecutado con pipeline completo
+src/run_pipeline.py   → Pipeline reproducible vía CLI
+requirements.txt      → Dependencias
+```
+
+---
+
+# 🚀 Cómo Ejecutar
+
+## Notebook (Recomendado)
+
+```bash
 pip install -r requirements.txt
 jupyter notebook notebook.ipynb
+```
 
-El notebook se encuentra ejecutado e incluye outputs y visualizaciones.
+## Pipeline CLI
 
-Opción B — Script reproducible
-
+```bash
+pip install -r requirements.txt
 python src/run_pipeline.py
+```
 
-Permite correr el pipeline completo en modo batch.
+---
 
-6. Estructura del repositorio
+# 🔮 Extensiones Futuras
 
-notebook.ipynb → Notebook ejecutado con outputs y visualizaciones
+- Expected Shortfall (Basilea III)  
+- DCC-GARCH  
+- Modelos de cambio de régimen  
+- Stress testing estructural  
+- Validación out-of-sample  
 
-src/run_pipeline.py → Pipeline reproducible en modo CLI
+---
 
-requirements.txt → Dependencias
+# 📌 Enfoque Profesional
 
-7. Limitaciones y extensiones
+Este proyecto replica el workflow utilizado en áreas de **Riesgo de Mercado** para:
 
-Limitaciones:
+- Modelar volatilidad condicional  
+- Estimar pérdidas potenciales  
+- Validar modelos bajo estándares estadísticos formales  
 
-Modelo univariado
-
-Correlación estática en bloque multivariado
-
-No incluye Expected Shortfall
-
-Extensiones naturales:
-
-Expected Shortfall (Basel III)
-
-DCC-GARCH
-
-Regime-switching models
-
-Stress testing
-
-Validación fuera de muestra
-
-Disclaimer
-
-Proyecto con fines académicos y de investigación.
-No constituye recomendación de inversión.
+Diseñado como framework reproducible y extensible para aplicaciones institucionales.
