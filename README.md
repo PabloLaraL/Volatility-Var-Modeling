@@ -179,4 +179,11 @@ Este proyecto replica workflows utilizados en equipos de **Riesgo de Mercado** p
 - Estimar pérdidas potenciales (VaR) bajo supuestos realistas (colas pesadas / asimetría)
 - Validar estadísticamente el modelo mediante backtesting formal
 
-Diseñado como framework **reproducible y extensible**, orientado a aplicaciones institucionales.
+Diseñado como framework **reproducible y extensible**.
+
+---
+
+Disclaimer
+
+Proyecto con fines académicos y de investigación.
+No constituye recomendación de inversión.
