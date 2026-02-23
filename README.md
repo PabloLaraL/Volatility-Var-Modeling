@@ -8,7 +8,7 @@ Transformación de precios a retornos logarítmicos
 
 Diagnóstico de estacionariedad (ADF) y estructura temporal (ACF/PACF)
 
-Filtrado de la media mediante ARIMA (innovaciones / residuos)
+Filtrado de la media mediante ARIMA
 
 Detección de heterocedasticidad condicional (ARCH-LM)
 
@@ -16,15 +16,13 @@ Estimación de volatilidad con GARCH / EGARCH / GJR-GARCH
 
 Comparación de distribuciones: Normal / Student-t / Skew-t
 
-Forecast de volatilidad (horizonte 
-𝐻
-H)
+Forecast de volatilidad (horizonte H)
 
 Cálculo de VaR:
 
 Paramétrico condicional
 
-Histórico
+Histórico (rolling window)
 
 Monte Carlo (univariado y multivariado)
 
@@ -34,7 +32,7 @@ Kupiec (Unconditional Coverage)
 
 Christoffersen (Independence)
 
-Conditional Coverage (test conjunto)
+Conditional Coverage
 
 Caso de estudio: Banco de Chile (CHILE.SN) con datos diarios desde 2015.
 
@@ -61,44 +59,9 @@ Este proyecto modela explícitamente estas propiedades y valida estadísticament
 2. Metodología
 2.1 Datos y retornos
 
-Se parte de precios diarios 
-𝑃
-𝑡
-P
-t
-	​
+Se parte de precios diarios P_t y se construyen retornos logarítmicos:
 
- y se construyen retornos logarítmicos:
-
-𝑟
-𝑡
-=
-ln
-⁡
-(
-𝑃
-𝑡
-𝑃
-𝑡
-−
-1
-)
-r
-t
-	​
-
-=ln(
-P
-t−1
-	​
-
-P
-t
-	​
-
-	​
-
-)
+r_t = ln(P_t / P_{t-1})
 
 Buenas prácticas: se utiliza Adj Close para evitar saltos artificiales producto de dividendos y splits.
 
@@ -106,39 +69,13 @@ Buenas prácticas: se utiliza Adj Close para evitar saltos artificiales producto
 
 Se modela la media condicional para remover dependencia lineal:
 
-𝑟
-𝑡
-=
-𝜇
-𝑡
-+
-𝜀
-𝑡
-r
-t
-	​
+r_t = mu_t + epsilon_t
 
-=μ
-t
-	​
+donde epsilon_t son innovaciones.
 
-+ε
-t
-	​
+Diagnóstico aplicado:
 
-
-donde 
-𝜀
-𝑡
-ε
-t
-	​
-
- son innovaciones.
-
-Diagnóstico:
-
-ACF/PACF sobre retornos
+ACF/PACF
 
 Test de Ljung–Box sobre residuos
 
@@ -147,166 +84,27 @@ Test de Ljung–Box sobre residuos
 Se evalúa evidencia ARCH mediante ARCH-LM y se estiman modelos de volatilidad.
 
 GARCH(1,1)
-𝜎
-𝑡
-2
-=
-𝜔
-+
-𝛼
-𝜀
-𝑡
-−
-1
-2
-+
-𝛽
-𝜎
-𝑡
-−
-1
-2
-σ
-t
-2
-	​
 
-=ω+αε
-t−1
-2
-	​
+sigma_t^2 = omega + alpha * epsilon_{t-1}^2 + beta * sigma_{t-1}^2
 
-+βσ
-t−1
-2
-	​
+Captura persistencia y clustering de volatilidad.
 
 EGARCH(1,1)
-log
-⁡
-(
-𝜎
-𝑡
-2
-)
-=
-𝜔
-+
-𝛽
-log
-⁡
-(
-𝜎
-𝑡
-−
-1
-2
-)
-+
-𝛼
-∣
-𝑧
-𝑡
-−
-1
-∣
-+
-𝛾
-𝑧
-𝑡
-−
-1
-log(σ
-t
-2
-	​
 
-)=ω+βlog(σ
-t−1
-2
-	​
+log(sigma_t^2) = omega + beta * log(sigma_{t-1}^2) + alpha * |z_{t-1}| + gamma * z_{t-1}
 
-)+α∣z
-t−1
-	​
-
-∣+γz
-t−1
-	​
+Permite modelar asimetría sin restricciones de positividad.
 
 GJR-GARCH(1,1)
-𝜎
-𝑡
-2
-=
-𝜔
-+
-𝛼
-𝜀
-𝑡
-−
-1
-2
-+
-𝛾
-𝜀
-𝑡
-−
-1
-2
-1
-{
-𝜀
-𝑡
-−
-1
-<
-0
-}
-+
-𝛽
-𝜎
-𝑡
-−
-1
-2
-σ
-t
-2
-	​
 
-=ω+αε
-t−1
-2
-	​
+sigma_t^2 = omega
++ alpha * epsilon_{t-1}^2
++ gamma * epsilon_{t-1}^2 * I(epsilon_{t-1} < 0)
++ beta * sigma_{t-1}^2
 
-+γε
-t−1
-2
-	​
+Modela efecto leverage (mayor impacto de shocks negativos).
 
-1
-{ε
-t−1
-	​
-
-<0}
-	​
-
-+βσ
-t−1
-2
-	​
-
-
-Se comparan distribuciones para 
-𝑧
-𝑡
-z
-t
-	​
-
-:
+Distribuciones consideradas para z_t:
 
 Normal
 
@@ -316,78 +114,20 @@ Skew-t
 
 2.4 Forecast de volatilidad
 
-Se calcula:
-
-𝜎
-^
-𝑡
-+
-ℎ
-σ
-^
-t+h
-	​
-
-
-para un horizonte 
-𝐻
-H, observando:
+Se estima sigma_hat_{t+h} para un horizonte H, observando:
 
 Convergencia a volatilidad de largo plazo
 
-Diferencias entre especificaciones
-
 Persistencia de shocks
+
+Diferencias entre especificaciones
 
 3. Value-at-Risk (VaR)
 3.1 VaR paramétrico condicional (ARIMA + GARCH)
-𝑉
-𝑎
-𝑅
-𝑡
-+
-1
-(
-𝛼
-)
-=
-𝜇
-𝑡
-+
-1
-+
-𝑞
-𝛼
-𝜎
-𝑡
-+
-1
-VaR
-t+1
-(α)
-	​
 
-=μ
-t+1
-	​
+VaR_{t+1}(alpha) = mu_{t+1} + q_alpha * sigma_{t+1}
 
-+q
-α
-	​
-
-σ
-t+1
-	​
-
-
-donde 
-𝑞
-𝛼
-q
-α
-	​
-
- es el cuantil de la distribución asumida.
+donde q_alpha es el cuantil de la distribución asumida.
 
 3.2 VaR histórico (rolling window)
 
@@ -395,72 +135,19 @@ Cuantil empírico sobre ventana móvil (ej. 250 días).
 
 3.3 VaR Monte Carlo
 
-Simulación:
+Simulación de retornos:
 
-𝑟
-𝑡
-+
-1
-(
-𝑠
-𝑖
-𝑚
-)
-=
-𝜇
-𝑡
-+
-1
-+
-𝜎
-𝑡
-+
-1
-𝑧
-(
-𝑠
-𝑖
-𝑚
-)
-r
-t+1
-(sim)
-	​
-
-=μ
-t+1
-	​
-
-+σ
-t+1
-	​
-
-z
-(sim)
+r_{t+1}^{sim} = mu_{t+1} + sigma_{t+1} * z^{sim}
 
 y cálculo del cuantil empírico de la distribución simulada.
 
-Incluye extensión multivariada con descomposición de Cholesky.
+Incluye extensión multivariada mediante descomposición de Cholesky para shocks correlacionados.
 
 4. Backtesting
 
 Se define violación cuando:
 
-𝑟
-𝑡
-<
-𝑉
-𝑎
-𝑅
-𝑡
-r
-t
-	​
-
-<VaR
-t
-	​
-
+r_t < VaR_t
 
 Se aplican:
 
@@ -468,30 +155,35 @@ Kupiec (Unconditional Coverage)
 
 Christoffersen (Independence)
 
-Conditional Coverage (test conjunto)
+Conditional Coverage
 
-Además:
+Además se incluyen:
 
 Visualización de violaciones
 
-Rolling hit rate (250 días)
+Rolling hit rate (ventana de 250 días)
 
 5. Cómo ejecutar
 Opción A — Notebook (recomendado)
+
 pip install -r requirements.txt
 jupyter notebook notebook.ipynb
 
 El notebook se encuentra ejecutado e incluye outputs y visualizaciones.
 
 Opción B — Script reproducible
+
 python src/run_pipeline.py
+
+Permite correr el pipeline completo en modo batch.
+
 6. Estructura del repositorio
 
-notebook.ipynb → Notebook ejecutado con outputs y visualizaciones.
+notebook.ipynb → Notebook ejecutado con outputs y visualizaciones
 
-src/run_pipeline.py → Pipeline reproducible en modo batch.
+src/run_pipeline.py → Pipeline reproducible en modo CLI
 
-requirements.txt → Dependencias.
+requirements.txt → Dependencias
 
 7. Limitaciones y extensiones
 
@@ -499,7 +191,7 @@ Limitaciones:
 
 Modelo univariado
 
-Correlación estática en versión multivariada
+Correlación estática en bloque multivariado
 
 No incluye Expected Shortfall
 
@@ -509,7 +201,7 @@ Expected Shortfall (Basel III)
 
 DCC-GARCH
 
-Regime-switching
+Regime-switching models
 
 Stress testing
 
