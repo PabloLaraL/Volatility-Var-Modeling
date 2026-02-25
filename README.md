@@ -1,189 +1,144 @@
-# 📈 Modelado de Volatilidad y Value-at-Risk (VaR)
+📈 Modelado de Volatilidad y Medición de Riesgo de Mercado
+Framework ARIMA–GARCH con VaR, ES y Backtesting Formal
+🔎 Descripción General
 
-## Framework ARIMA–GARCH con Backtesting Estadístico Formal
+Este repositorio presenta un framework estructurado para el modelado de volatilidad condicional y la estimación de medidas modernas de riesgo de mercado.
 
----
+El pipeline integra:
 
-## 🔎 Descripción General
+Construcción de retornos logarítmicos
 
-Este repositorio implementa un **pipeline profesional de riesgo de mercado** orientado al modelamiento de volatilidad condicional y a la **validación formal de modelos de Value-at-Risk (VaR)**.
+Modelado de la media condicional mediante ARIMA
 
-El framework integra:
+Modelos de volatilidad de la familia GARCH
 
-- Transformación de precios ajustados a **retornos logarítmicos**
-- Modelado de la **media condicional** mediante ARIMA
-- Modelos de volatilidad de la **familia GARCH**
-- Estimación de VaR: **Paramétrico Condicional**, **Histórico** y **Monte Carlo**
-- Backtesting formal: **Kupiec** (Unconditional Coverage) y **Christoffersen** (Independence / Conditional Coverage)
-- Diagnóstico dinámico mediante **rolling hit-rate**
+Estimación de Value-at-Risk (VaR):
 
-**Caso de estudio:** Banco de Chile (CHILE.SN), datos diarios desde 2015.
+Paramétrico condicional
 
----
+Histórico
 
-# 🧠 Hechos Estilizados de Series de Tiempo Financieras
+Monte Carlo
 
-Las series financieras presentan propiedades empíricas ampliamente documentadas:
+Backtesting formal:
 
-- Precios no estacionarios
-- Retornos aproximadamente estacionarios
-- Clustering de volatilidad
-- Heterocedasticidad condicional
-- Colas pesadas (fat tails)
-- Alta persistencia de volatilidad
-- Asimetría ante shocks negativos (efecto leverage)
+Kupiec (Cobertura Incondicional)
 
-Este proyecto modela explícitamente estas características y evalúa el desempeño del VaR bajo criterios estadísticos formales.
+Christoffersen (Independencia y Cobertura Condicional)
 
----
+Estimación dinámica de Expected Shortfall (ES) 97.5%
 
-# ⚙️ Metodología
+Caso de estudio: Banco de Chile (CHILE.SN), datos diarios desde 2015.
 
----
+El objetivo es demostrar, de forma didáctica y reproducible, cómo conectar modelos econométricos de volatilidad con métricas modernas de riesgo utilizadas en la práctica.
 
-## 1️⃣ Datos y Construcción de Retornos
+🧠 Hechos Estilizados de Retornos Financieros
 
-Se utilizan precios ajustados (Adjusted Close) para evitar distorsiones por dividendos y splits.
+Las series financieras suelen presentar:
 
-A partir de ellos se construyen **retornos logarítmicos**, que constituyen la base para el modelamiento posterior.
+Retornos aproximadamente estacionarios
 
----
+Clustering de volatilidad
 
-## 2️⃣ Modelado de la Media (ARIMA)
+Heterocedasticidad condicional
 
-La media condicional se modela utilizando un proceso **ARIMA(p,d,q)**.
+Colas pesadas
+
+Asimetría ante shocks negativos (leverage effect)
+
+El framework modela explícitamente estas características.
+
+⚙️ Metodología
+1️⃣ Construcción de Retornos
+
+Se utilizan precios ajustados para evitar distorsiones por dividendos y splits.
+A partir de ellos se calculan retornos logarítmicos.
+
+2️⃣ Modelado de la Media — ARIMA
+
+La media condicional se modela mediante un proceso ARIMA.
 
 Diagnósticos aplicados:
 
-- ACF / PACF
-- Test de Ljung–Box sobre residuos
+ACF / PACF
 
-El objetivo es aislar las **innovaciones** (residuos) para modelar sobre ellas la dinámica de volatilidad condicional.
+Test de Ljung–Box
 
----
+El objetivo es aislar las innovaciones para modelar la varianza condicional.
 
-## 3️⃣ Modelos de Volatilidad Condicional (Familia GARCH)
+3️⃣ Modelos de Volatilidad — Familia GARCH
 
-Antes de estimar modelos, se verifica la presencia de heterocedasticidad mediante:
-
-- **ARCH-LM test** (detección de efectos ARCH)
+Previo a la estimación se verifica heterocedasticidad mediante el test ARCH-LM.
 
 Modelos implementados:
 
-### 🔹 GARCH(1,1)
+GARCH(1,1)
 
-Modelo base para capturar:
+EGARCH(1,1)
 
-- Clustering de volatilidad  
-- Persistencia de la varianza  
+GJR-GARCH(1,1)
 
----
+Se consideran distribuciones Normal y t-Student para capturar colas pesadas.
 
-### 🔹 EGARCH(1,1)
+📉 Value-at-Risk (VaR)
 
-Extensión que permite:
+Se implementan tres enfoques:
 
-- Modelar **asimetría** (shocks negativos impactan distinto que positivos)  
-- Evitar restricciones de positividad al modelar en escala logarítmica  
+🔹 VaR Paramétrico Condicional
 
----
+Basado en:
 
-### 🔹 GJR-GARCH(1,1)
+Media condicional (ARIMA)
 
-Modelo diseñado para:
+Volatilidad condicional (GARCH)
 
-- Capturar explícitamente el **leverage effect** mediante un término indicador para shocks negativos  
+Cuantiles según la distribución asumida
 
----
+🔹 VaR Histórico
 
-### 🔹 Supuestos Distribucionales
+Cuantil empírico sobre ventana móvil.
 
-Las innovaciones estandarizadas se estiman bajo distintos supuestos para capturar colas pesadas y asimetría:
+🔹 VaR Monte Carlo
 
-- Normal
-- Student-t
-- Skew-t
+Simulación de escenarios bajo el modelo condicional estimado.
 
----
+🧪 Backtesting del VaR
 
-## 4️⃣ Forecast de Volatilidad
+Se evalúa el desempeño del modelo mediante:
 
-El framework produce pronósticos de volatilidad a distintos horizontes, que se utilizan como entrada para la estimación de VaR condicional (forward-looking).
+Kupiec: consistencia en la frecuencia de violaciones
 
----
+Christoffersen: independencia temporal de violaciones
 
-# 📉 Value-at-Risk (VaR)
+Cobertura condicional conjunta
 
----
+El análisis incluye visualización de violaciones y evaluación dinámica.
 
-## 🔹 VaR Paramétrico Condicional
+📊 Expected Shortfall (ES)
 
-Estimación basada en:
+Se estima:
 
-- Media condicional (ARIMA)
-- Volatilidad condicional pronosticada (GARCH-family)
-- Cuantiles según la distribución asumida (Normal / Student-t / Skew-t)
+ES Histórico
 
----
+ES Dinámico 97.5% bajo el modelo condicional GJR-GARCH(t)
 
-## 🔹 VaR Histórico
+El ES complementa al VaR capturando la severidad esperada en la cola izquierda de la distribución.
 
-Estimado mediante:
+🎯 Enfoque del Proyecto
 
-- Cuantil empírico sobre ventana móvil (por ejemplo 250 días)
+Este trabajo tiene fines educativos y analíticos.
 
----
+Busca demostrar cómo:
 
-## 🔹 VaR Monte Carlo
+Modelos ARIMA–GARCH pueden capturar hechos estilizados
 
-Estimación por simulación de escenarios:
+El VaR puede validarse formalmente mediante backtesting
 
-- Generación de shocks simulados desde la distribución estimada
-- Construcción de retornos simulados con media y volatilidad condicional
-- Extensión multivariada disponible mediante descomposición de Cholesky para correlaciones
+El ES puede integrarse de manera coherente en un entorno dinámico
 
----
+No pretende replicar un motor regulatorio bancario completo, sino ilustrar de forma técnica y estructurada los fundamentos de medición de riesgo de mercado.
 
-# 🧪 Backtesting Estadístico
+⚠️ Disclaimer
 
-Se define una violación cuando el retorno observado supera el VaR estimado al nivel de significancia elegido.
-
-Validación formal:
-
-- **Kupiec (Unconditional Coverage):** evalúa si la tasa de violaciones coincide con la esperada
-- **Christoffersen (Independence):** evalúa independencia temporal de violaciones
-- **Conditional Coverage:** evaluación conjunta de cobertura e independencia
-
-Diagnósticos:
-
-- Visualización de violaciones
-- **Rolling hit-rate** (ej. ventana móvil 250 días)
-
----
-
-# 🔮 Extensiones Potenciales
-
-- Expected Shortfall (Basilea III)
-- DCC-GARCH (multivariado dinámico)
-- Modelos de cambio de régimen
-- Stress testing estructural
-- Validación out-of-sample formal
-
----
-
-# 📌 Enfoque Profesional
-
-Este proyecto replica workflows utilizados en equipos de **Riesgo de Mercado** para:
-
-- Modelar volatilidad condicional de retornos
-- Estimar pérdidas potenciales (VaR) bajo supuestos realistas (colas pesadas / asimetría)
-- Validar estadísticamente el modelo mediante backtesting formal
-
-Diseñado como framework **reproducible y extensible**.
-
----
-
-Disclaimer
-
-Proyecto con fines académicos y de investigación.
+Proyecto con fines académicos.
 No constituye recomendación de inversión.
