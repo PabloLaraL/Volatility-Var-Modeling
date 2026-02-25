@@ -82,6 +82,7 @@ Distribuciones consideradas:
 
 - Normal
 - Student-t
+- Skew-t
 
 ---
 
